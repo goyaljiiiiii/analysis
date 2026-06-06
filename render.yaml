@@ -1,0 +1,15 @@
+services:
+  - type: web
+    name: developer-rpg-profile
+    runtime: static
+    buildCommand: npm install && npm run build
+    publishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    headers:
+      - path: /*
+        headers:
+          - key: Cache-Control
+            value: public, max-age=0, must-revalidate
