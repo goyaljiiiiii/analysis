@@ -167,7 +167,6 @@ function App() {
     setProfile(characterProfile);
     setIsLoaded(false);
     setUsernameInput('');
-    setResumeFile(null);
     setErrorMessage('');
     setSuccessMessage('');
   };
