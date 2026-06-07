@@ -1,7 +1,25 @@
 /* eslint-disable */
-import pdf from 'pdf-parse';
+import * as pdfParseModule from 'pdf-parse';
+
+const pdfParse = (pdfParseModule as any).default ?? (pdfParseModule as any);
+
+
+
 import mammoth from 'mammoth';
 import type { SkillNode, Achievement } from '../src/types/profile';
+
+function coercePdfBuffer(raw: any): any {
+  const B: any = (globalThis as any).Buffer;
+  if (!B) return raw;
+  if (B.isBuffer(raw)) return raw;
+  if (raw instanceof ArrayBuffer) return B.from(new Uint8Array(raw));
+  if (ArrayBuffer.isView(raw)) return B.from(raw.buffer);
+  if (raw && typeof raw === 'object' && 'data' in raw && B.isBuffer((raw as any).data)) return (raw as any).data;
+  return B.from(raw ?? []);
+}
+
+
+
 
 // We disable Vite/Vercel default JSON/form body parsing for this endpoint so we receive the raw binary file buffer
 export const config = {
@@ -11,12 +29,16 @@ export const config = {
 };
 
 // Helper to accumulate the raw body chunks into a single Buffer
-async function getRawBody(req: any): Promise<Buffer> {
+async function getRawBody(req: any): Promise<any> {
+  const B: any = (globalThis as any).Buffer;
   const chunks: any[] = [];
   for await (const chunk of req) {
-    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+    if (typeof chunk === 'string' && B?.from) chunks.push(B.from(chunk));
+    else chunks.push(chunk);
   }
-  return Buffer.concat(chunks);
+  if (B?.concat) return B.concat(chunks);
+  // Fallback for environments without Buffer typing/runtime
+  return chunks;
 }
 
 // Dictionary of skills and their corresponding branch names
@@ -73,9 +95,16 @@ export default async function handler(req: any, res: any) {
   try {
     const filename = req.query.name || '';
     const contentType = req.headers['content-type'] || '';
-    const buffer = await getRawBody(req);
 
-    if (buffer.length === 0) {
+    // In local dev (Vite), the apiPlugin injects POST raw body into req.body.
+    // In other runtimes, we stream the raw body from the request.
+    const injectedBody = (req as any).body;
+    const buffer = injectedBody ? injectedBody : await getRawBody(req);
+    const pdfBuffer = coercePdfBuffer(buffer);
+
+    const bufferLength = typeof pdfBuffer?.length === 'number' ? pdfBuffer.length : (buffer?.length ?? 0);
+
+    if (bufferLength === 0) {
       throw new Error('Empty file uploaded.');
     }
 
@@ -83,16 +112,17 @@ export default async function handler(req: any, res: any) {
 
     // Check file type and parse
     if (filename.endsWith('.pdf') || contentType.includes('pdf')) {
-      const parsedData = await pdf(buffer);
+      const parsedData = await pdfParse(pdfBuffer);
       text = parsedData.text || '';
     } else if (filename.endsWith('.docx') || contentType.includes('word') || contentType.includes('octet-stream')) {
       // Mammoth extracts raw text from docx
-      const result = await mammoth.extractRawText({ buffer });
+      const result = await mammoth.extractRawText({ buffer: pdfBuffer });
       text = result.value || '';
     } else {
       // Fallback: try parsing as text
-      text = buffer.toString('utf-8');
+      text = pdfBuffer.toString('utf-8');
     }
+
 
     if (!text.trim()) {
       throw new Error('Unable to extract readable text from the uploaded file.');

@@ -37,11 +37,13 @@ function App() {
   const [activeTab, setActiveTab] = useState<'overview' | 'ratings' | 'readme'>('overview');
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [usernameInput, setUsernameInput] = useState<string>('');
+  const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [rating, setRating] = useState<RatingBreakdown | null>(null);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
+
 
   // Sync active theme class to HTML body element
   useEffect(() => {
@@ -136,8 +138,9 @@ function App() {
   };
 
   const handleGenerateProfile = async () => {
-    if (!usernameInput.trim()) {
-      setErrorMessage('Please enter a GitHub username.');
+    // Username is optional when a resume is uploaded (but still supported).
+    if (!usernameInput.trim() && !resumeFile) {
+      setErrorMessage('Please enter a GitHub username or upload a resume.');
       return;
     }
 
@@ -146,15 +149,113 @@ function App() {
     setSuccessMessage('');
 
     try {
-      const response = await fetch(`/api/github?username=${encodeURIComponent(usernameInput.trim())}`);
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error || 'Failed to fetch GitHub profile details.');
+      // 1) Fetch GitHub profile (if username provided)
+      let currentProfile: DeveloperProfile = JSON.parse(JSON.stringify(characterProfile)) as DeveloperProfile;
+      if (usernameInput.trim()) {
+        const response = await fetch(
+          `/api/github?username=${encodeURIComponent(usernameInput.trim())}`,
+        );
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.error || 'Failed to fetch GitHub profile details.');
+        }
+        currentProfile = await response.json();
       }
-      const currentProfile = await response.json();
+
+      // 2) If resume uploaded, parse + merge into the profile
+      if (resumeFile) {
+        const formData = new FormData();
+        formData.append('resume', resumeFile, resumeFile.name);
+
+        const resumeRes = await fetch('/api/resume?name=' + encodeURIComponent(resumeFile.name), {
+          method: 'POST',
+          body: formData,
+        });
+
+        if (!resumeRes.ok) {
+          const err = await resumeRes.json().catch(() => ({}));
+          throw new Error(err.error || 'Failed to parse resume file.');
+        }
+
+        const resumeData = await resumeRes.json();
+
+        // Merge resume-derived info into the RPG profile.
+        const mergedSkills = (() => {
+          const skillMap = new Map<string, { name: string; level: number; branch: string }>();
+
+          // Start with existing skills
+          currentProfile.skillTree.forEach((s) => skillMap.set(s.name, { ...s }));
+
+          // Merge/override with resume skills (dedupe by name)
+          (resumeData.skills || []).forEach((s: any) => {
+            const existing = skillMap.get(s.name);
+            skillMap.set(s.name, {
+              name: s.name,
+              level: typeof s.level === 'number' ? s.level : existing?.level ?? 60,
+              branch: s.branch ?? existing?.branch ?? 'Rune Control',
+            });
+          });
+
+          // Sort by level desc to keep UI meaningful
+          return Array.from(skillMap.values()).sort((a, b) => {
+            const al = typeof a.level === 'number' ? a.level : 0;
+            const bl = typeof b.level === 'number' ? b.level : 0;
+            return bl - al;
+          });
+
+        })();
+
+        const mergedAchievements = (() => {
+          const seen = new Set<string>();
+          const out: any[] = [];
+
+          // keep GitHub achievements first
+          currentProfile.achievements.forEach((a) => {
+            const key = a.title;
+            if (!seen.has(key)) {
+              seen.add(key);
+              out.push(a);
+            }
+          });
+
+          // then add resume achievements
+          (resumeData.achievements || []).forEach((a: any) => {
+            const key = a.title;
+            if (!seen.has(key)) {
+              seen.add(key);
+              out.push(a);
+            }
+          });
+
+          return out;
+        })();
+
+        const suggestedClass: string = resumeData.suggestedClass || currentProfile.className;
+
+        // Update base profile fields to reflect resume
+        currentProfile = {
+          ...currentProfile,
+          className: suggestedClass,
+          specialization: currentProfile.specialization || resumeData.education || 'Generalist',
+          achievements: mergedAchievements,
+          skillTree: mergedSkills.slice(0, 18),
+          analysis: {
+            ...currentProfile.analysis,
+            powerLevel: currentProfile.analysis?.powerLevel || `${currentProfile.powerLevel}/100`,
+          },
+        };
+      }
+
       setProfile(currentProfile);
       setIsLoaded(true);
-      setSuccessMessage(`Generated RPG profile for ${currentProfile.name}!`);
+      setSuccessMessage(
+        usernameInput.trim()
+          ? `Generated RPG profile for ${currentProfile.name}!`
+          : `Generated RPG profile from your resume!`,
+      );
+
+      // README tab is more likely desired right after generation
+      setActiveTab('readme');
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message || 'Error compiling profile data.');
@@ -222,6 +323,94 @@ function App() {
                   aria-label="GitHub Username"
                 />
               </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '14px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                  <label style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    📄 Upload Resume (PDF/DOCX)
+                  </label>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: 600 }}>
+                    Optional
+                  </span>
+                </div>
+
+                <div
+                  className="file-dropzone"
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      const el = document.getElementById('resume-upload-input') as HTMLInputElement | null;
+                      el?.click();
+                    }
+                  }}
+                  onClick={() => {
+                    const el = document.getElementById('resume-upload-input') as HTMLInputElement | null;
+                    el?.click();
+                  }}
+                  aria-label="Upload resume"
+                >
+                  <div className="upload-icon">⬆️</div>
+                  <div style={{ fontWeight: 800, color: 'var(--text-main)', marginBottom: 4 }}>
+                    Choose file
+                  </div>
+                  <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    Drop a PDF or DOCX to extract skills & experience
+                  </div>
+
+                  <input
+                    id="resume-upload-input"
+                    type="file"
+                    accept=".pdf,.docx"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] ?? null;
+                      setResumeFile(file);
+                    }}
+                    aria-label="Upload Resume"
+                  />
+                </div>
+
+                {resumeFile && (
+                  <div
+                    style={{
+                      fontSize: '0.78rem',
+                      color: 'var(--text-muted)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: 12,
+                      padding: '10px 12px',
+                      border: '1px solid var(--line-strong)',
+                      borderRadius: 6,
+                      backgroundColor: 'var(--bg-deep)',
+                    }}
+                  >
+                    <span>
+                      Selected: <strong style={{ color: 'var(--text-main)' }}>{resumeFile.name}</strong>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setResumeFile(null);
+                      }}
+                      style={{
+                        border: '1px solid var(--line-strong)',
+                        background: 'transparent',
+                        color: 'var(--text-main)',
+                        borderRadius: 6,
+                        padding: '6px 10px',
+                        cursor: 'pointer',
+                        fontWeight: 700,
+                        fontSize: '0.78rem',
+                      }}
+                    >
+                      Remove
+                    </button>
+                  </div>
+                )}
+              </div>
+
 
               <button
                 className="primary-assemble"
@@ -346,10 +535,48 @@ function App() {
                           <h3>Activity Grid</h3>
                         </div>
                         <div className="contrib-grid-wrapper">
-                          <div className="contrib-grid" style={{ gap: '2px' }}>
+                          {/*
+                            NOTE:
+                            This is still a visual approximation unless we fetch actual daily contribution counts.
+                            We keep it deterministic so it doesn't look “fake randomized” in the UI.
+                          */}
+                          <div className="contrib-grid" aria-label="Contribution activity grid">
                             {Array.from({ length: 70 }).map((_, idx) => {
-                              const level = idx % 11 === 0 ? 'level-4' : idx % 7 === 0 ? 'level-3' : idx % 5 === 0 ? 'level-2' : idx % 3 === 0 ? 'level-1' : '';
-                              return <div key={idx} className={`contrib-box ${level}`} style={{ width: '10px', height: '10px' }} title="Activity cell"></div>;
+                              // Deterministic pseudo-distribution based on current profile metrics.
+                              // level frequency increases with commits / PRs and streak.
+                              const commitsFactor = Math.min(
+                                1,
+                                (Number(
+                                  profile.stats.find((s) => s.label === 'Commits')
+                                    ?.value ?? 0,
+                                ) || 0) / 200,
+                              );
+                              const prsFactor = Math.min(
+                                1,
+                                (Number(
+                                  profile.stats.find((s) => s.label === 'Merged PRs')
+                                    ?.value ?? 0,
+                                ) || 0) / 50,
+                              );
+                              const streakStr = (profile.stats.find((s) => s.label === 'Contrib Streak')?.value ?? '1').toString();
+                              const streakNumMatch = streakStr.match(/\d+/);
+                              const streakNum = streakNumMatch ? parseInt(streakNumMatch[0], 10) : 0;
+                              const streakFactor = Math.min(1, streakNum / 30);
+
+                              const raw = (commitsFactor as number) * 0.55 + (prsFactor as number) * 0.25 + (streakFactor as number) * 0.20;
+                              const density = 0.18 + raw * 0.65; // 0.18..0.83
+
+                              // Spread levels by index while keeping it deterministic.
+                              const t = (idx * 9301 + 49297) % 233280; // simple LCG
+                              const r = t / 233280;
+
+                              let level = '';
+                              if (r < density * 0.10) level = 'level-4';
+                              else if (r < density * 0.28) level = 'level-3';
+                              else if (r < density * 0.48) level = 'level-2';
+                              else if (r < density * 0.70) level = 'level-1';
+
+                              return <div key={idx} className={`contrib-box ${level}`} title="Activity cell"></div>;
                             })}
                           </div>
                         </div>

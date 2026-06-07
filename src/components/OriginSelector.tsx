@@ -17,8 +17,8 @@ export function OriginSelector({ origins }: OriginSelectorProps) {
   return (
     <article className="card" id="origins">
       <div className="section-head">
-        <h3>README Character Creator</h3>
-        <p className="subtle">Choose Your Developer Origin and preview your profile flavor.</p>
+        <h3>Developer Origin</h3>
+        <p className="subtle">Choose your archetype to flavor your profile.</p>
       </div>
       <div className="origin-grid">
         {origins.map((origin, index) => {
