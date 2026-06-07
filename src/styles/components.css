@@ -17,8 +17,8 @@
 }
 
 .avatar-badge-circle {
-  width: 260px;
-  height: 260px;
+  width: 220px;
+  height: 220px;
   border-radius: 50%;
   border: 1px solid var(--line-strong);
   background: linear-gradient(135deg, #bc8cff, #8a2be2);
@@ -26,10 +26,11 @@
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 5rem;
+  font-size: 4.5rem;
   box-shadow: var(--shadow-neon);
   overflow: hidden;
   position: relative;
+  margin: 0 auto;
 }
 
 .avatar-badge-circle::after {
@@ -128,7 +129,7 @@
 /* GITHUB PINNED REPOSITORIES GRID (Quest Board) */
 .quest-grid-pinned {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 16px;
 }
 
@@ -243,7 +244,7 @@
 /* STAT TILES (Overview Grid) */
 .stat-grid-github {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 12px;
   margin-bottom: 16px;
 }
@@ -280,7 +281,7 @@
 /* ACHIEVEMENTS GRID (Vault) */
 .achievement-grid-github {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   gap: 12px;
   list-style: none;
   padding: 0;
@@ -363,9 +364,9 @@
   padding: 12px 16px;
   background-color: var(--bg-panel);
   display: grid;
-  grid-template-columns: 180px 1fr 60px;
+  grid-template-columns: 1fr auto 60px;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
 }
 
 .skill-node-github h4 {
@@ -499,7 +500,7 @@
 /* ANALYSIS REPORT */
 .analysis-grid-github {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-top: 12px;
 }
@@ -542,27 +543,43 @@
 }
 
 /* RESPONSIVE SUB-RULES */
-@media (max-width: 1200px) {
-  .quest-grid-pinned,
-  .origin-grid-github {
+@media (max-width: 768px) {
+  .quest-grid-pinned {
     grid-template-columns: 1fr;
   }
-}
-
-@media (max-width: 980px) {
   .stat-grid-github {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
   .achievement-grid-github {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .origin-grid-github {
+    grid-template-columns: 1fr;
   }
   .analysis-grid-github {
     grid-template-columns: 1fr;
   }
+  .skill-node-github {
+    grid-template-columns: 1fr auto;
+    grid-template-rows: auto auto;
+  }
+  .skill-node-github .skill-meter-github {
+    grid-column: 1 / -1;
+  }
+  .skill-node-github strong {
+    text-align: right;
+  }
+  .avatar-badge-circle {
+    width: 160px;
+    height: 160px;
+    font-size: 3rem;
+  }
 }
 
-@media (max-width: 680px) {
-  .stat-grid-github,
+@media (max-width: 480px) {
+  .stat-grid-github {
+    grid-template-columns: repeat(2, 1fr);
+  }
   .achievement-grid-github {
     grid-template-columns: 1fr;
   }
@@ -572,5 +589,10 @@
   }
   .skill-node-github strong {
     text-align: left;
+  }
+  .avatar-badge-circle {
+    width: 140px;
+    height: 140px;
+    font-size: 2.5rem;
   }
 }

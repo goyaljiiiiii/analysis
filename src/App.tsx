@@ -41,7 +41,7 @@ function App() {
   const [successMessage, setSuccessMessage] = useState<string>('');
   const [rating, setRating] = useState<RatingBreakdown | null>(null);
   const [checklist, setChecklist] = useState<ChecklistItem[]>([]);
-
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
 
   // Sync active theme class to HTML body element
   useEffect(() => {
@@ -161,8 +161,8 @@ function App() {
       setIsLoaded(true);
       setSuccessMessage(`Generated RPG profile for ${currentProfile.name}!`);
 
-      // README tab is more likely desired right after generation
-      setActiveTab('readme');
+      // Show character sheet by default after generation
+      setActiveTab('overview');
     } catch (err: any) {
       console.error(err);
       setErrorMessage(err.message || 'Error compiling profile data.');
@@ -187,12 +187,12 @@ function App() {
 
 
   return (
-    <div className="github-layout-root" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column' }}>
+    <div className="github-layout-root" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', overflowX: 'hidden', width: '100%' }}>
       
       {/* 1. GATED Streamlined Login Screen */}
       {!isLoaded ? (
-        <main style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '24px' }}>
-          <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '32px', border: '1px solid var(--line-strong)', borderRadius: '6px', backgroundColor: 'var(--bg-panel)', boxShadow: 'var(--shadow-neon)' }}>
+        <main style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: 1, padding: '16px' }}>
+          <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '24px', border: '1px solid var(--line-strong)', borderRadius: '6px', backgroundColor: 'var(--bg-panel)', boxShadow: 'var(--shadow-neon)' }}>
             
             <div style={{ marginBottom: '24px', textAlign: 'center' }}>
               <div style={{ fontSize: '3rem', marginBottom: '8px' }}>⚔️</div>
@@ -266,38 +266,68 @@ function App() {
           {/* Header Nav */}
           <SideNav battleTag={profile.battleTag} onReset={handleReset} />
 
-          {/* Subheader Navigation Tab Buttons */}
+          {/* Tab Navigation — Desktop: horizontal tabs | Mobile: hamburger dropdown */}
           <div className="github-tabs-bar">
-            <div className="github-tabs-container">
+            {/* Desktop tabs */}
+            <div className="github-tabs-container desktop-tabs">
+              {[
+                { id: 'overview', emoji: '👤', label: 'Character Sheet' },
+                { id: 'ratings', emoji: '📊', label: 'Profile Ratings' },
+                { id: 'readme', emoji: '📝', label: 'README Generator' },
+                { id: 'repo-analyzer', emoji: '🔍', label: 'Repo Analyzer' },
+              ].map((tab) => (
+                <button
+                  key={tab.id}
+                  className={`github-tab ${activeTab === tab.id ? 'active' : ''}`}
+                  onClick={() => setActiveTab(tab.id as any)}
+                  type="button"
+                >
+                  <span>{tab.emoji}</span> {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Mobile hamburger row */}
+            <div className="mobile-tabs-row">
+              <span className="mobile-active-tab-label">
+                {activeTab === 'overview' && '👤 Character Sheet'}
+                {activeTab === 'ratings' && '📊 Profile Ratings'}
+                {activeTab === 'readme' && '📝 README Generator'}
+                {activeTab === 'repo-analyzer' && '🔍 Repo Analyzer'}
+              </span>
               <button
-                className={`github-tab ${activeTab === 'overview' ? 'active' : ''}`}
-                onClick={() => setActiveTab('overview')}
+                className="hamburger-btn"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 type="button"
+                aria-label="Toggle menu"
+                aria-expanded={mobileMenuOpen}
               >
-                <span>👤</span> Character Sheet
-              </button>
-              <button
-                className={`github-tab ${activeTab === 'ratings' ? 'active' : ''}`}
-                onClick={() => setActiveTab('ratings')}
-                type="button"
-              >
-                <span>📊</span> Profile Ratings
-              </button>
-              <button
-                className={`github-tab ${activeTab === 'readme' ? 'active' : ''}`}
-                onClick={() => setActiveTab('readme')}
-                type="button"
-              >
-                <span>📝</span> README Generator
-              </button>
-              <button
-                className={`github-tab ${activeTab === 'repo-analyzer' ? 'active' : ''}`}
-                onClick={() => setActiveTab('repo-analyzer')}
-                type="button"
-              >
-                <span>🔍</span> Repo Analyzer
+                {mobileMenuOpen ? '✕' : '☰'}
               </button>
             </div>
+
+            {/* Mobile dropdown menu */}
+            {mobileMenuOpen && (
+              <div className="mobile-tab-dropdown">
+                {[
+                  { id: 'overview', emoji: '👤', label: 'Character Sheet' },
+                  { id: 'ratings', emoji: '📊', label: 'Profile Ratings' },
+                  { id: 'readme', emoji: '📝', label: 'README Generator' },
+                  { id: 'repo-analyzer', emoji: '🔍', label: 'Repo Analyzer' },
+                ].map((tab) => (
+                  <button
+                    key={tab.id}
+                    className={`mobile-tab-item ${activeTab === tab.id ? 'active' : ''}`}
+                    onClick={() => { setActiveTab(tab.id as any); setMobileMenuOpen(false); }}
+                    type="button"
+                  >
+                    <span className="mobile-tab-emoji">{tab.emoji}</span>
+                    <span>{tab.label}</span>
+                    {activeTab === tab.id && <span className="mobile-tab-check">✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="github-profile-layout">
@@ -357,10 +387,10 @@ function App() {
                   </div>
 
                   {/* Two Column Layout for the rest */}
-                  <div className="bento-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
+                  <div className="bento-grid">
                     
                     {/* Left Column (Main Content) - roughly 65% width */}
-                    <div className="bento-main" style={{ flex: '1 1 60%', display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '320px' }}>
+                    <div className="bento-main">
                       <section className="card contrib-calendar" style={{ padding: '24px', margin: 0, boxShadow: 'var(--shadow-neon)' }}>
                         <div className="section-head">
                           <h3>Activity Grid</h3>
@@ -399,7 +429,7 @@ function App() {
                     </div>
 
                     {/* Right Column (Sidebar Content) - roughly 35% width */}
-                    <div className="bento-side" style={{ flex: '1 1 30%', display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '300px' }}>
+                    <div className="bento-side">
                       <section className="card" style={{ padding: '24px', margin: 0, display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: 'var(--shadow-neon)' }}>
                         <div className="section-head" style={{ marginBottom: '4px' }}>
                           <h3>Language Mastery &amp; Skills</h3>

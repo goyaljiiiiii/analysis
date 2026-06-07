@@ -3,12 +3,23 @@
   box-sizing: border-box;
 }
 
+/* Media elements must never overflow their containers */
+img, video, iframe, embed, object {
+  max-width: 100%;
+}
+
+html {
+  overflow-x: hidden;
+}
+
 html,
 body,
 #root {
   margin: 0;
   min-height: 100%;
   background-color: var(--bg-void);
+  max-width: 100vw;
+  overflow-x: hidden;
 }
 
 body {
@@ -17,19 +28,24 @@ body {
   background-color: var(--bg-void);
   line-height: 1.5;
   transition: background-color 0.2s ease, color 0.2s ease;
+  overflow-x: hidden;
+  width: 100%;
 }
 
 /* GLOBAL HEADER NAV (Simulating GitHub's Navbar) */
 .github-header {
   background-color: #161b22;
   border-bottom: 1px solid #30363d;
-  padding: 12px 24px;
+  padding: 10px 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 62px;
+  min-height: 56px;
   z-index: 10;
-  position: relative;
+  position: sticky;
+  top: 0;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .github-header-left {
@@ -50,7 +66,8 @@ body {
 }
 
 .github-search-container {
-  width: 280px;
+  width: 220px;
+  max-width: 100%;
   position: relative;
 }
 
@@ -107,25 +124,132 @@ body {
 .github-tabs-bar {
   background-color: var(--bg-deep);
   border-bottom: 1px solid var(--line-strong);
-  padding: 0 24px;
+  padding: 0 12px;
   position: sticky;
-  top: 0;
-  z-index: 5;
+  top: 56px;
+  z-index: 50;
+  overflow: visible; /* must be visible so dropdown can escape the bar */
+  /* scrolling handled per-container below */
+}
+
+/* Make the tab bar itself not scroll horizontally on mobile — the dropdown handles nav */
+.github-tabs-bar::-webkit-scrollbar {
+  display: none;
 }
 
 .github-tabs-container {
   max-width: 1280px;
   margin: 0 auto;
   display: flex;
-  gap: 8px;
+  gap: 0;
+  width: max-content;
+  min-width: 100%;
+}
+
+/* Hide desktop tabs on mobile */
+.desktop-tabs {
+  display: flex;
+}
+
+/* Mobile hamburger row — hidden on desktop */
+.mobile-tabs-row {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px;
+  width: 100%;
+  min-height: 44px;
+}
+
+.mobile-active-tab-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text-main);
+  padding-left: 4px;
+}
+
+.hamburger-btn {
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  color: var(--text-main);
+  cursor: pointer;
+  font-size: 1.1rem;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+
+.hamburger-btn:hover {
+  background: var(--line-strong);
+}
+
+/* Full-width dropdown list that opens below the tab bar */
+.mobile-tab-dropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--bg-deep);
+  border-bottom: 1px solid var(--line-strong);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+}
+
+.mobile-tab-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border: 0;
+  border-bottom: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--text-main);
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  transition: background 0.1s;
+}
+
+.mobile-tab-item:last-child {
+  border-bottom: 0;
+}
+
+.mobile-tab-item:hover {
+  background-color: var(--line-soft);
+}
+
+.mobile-tab-item.active {
+  background-color: rgba(88, 166, 255, 0.08);
+  font-weight: 700;
+  color: var(--git-blue);
+}
+
+.mobile-tab-emoji {
+  font-size: 1.1rem;
+  flex-shrink: 0;
+}
+
+.mobile-tab-check {
+  margin-left: auto;
+  color: var(--git-blue);
+  font-weight: 700;
 }
 
 .github-tab {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 14px 16px;
-  font-size: 0.88rem;
+  gap: 6px;
+  padding: 12px 14px;
+  font-size: 0.85rem;
   color: var(--text-main);
   border: 0;
   background: transparent;
@@ -133,6 +257,8 @@ body {
   position: relative;
   font-weight: 500;
   transition: color 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .github-tab:hover {
@@ -170,10 +296,10 @@ body {
 /* 2-COLUMN PROFILE LAYOUT */
 .github-profile-layout {
   max-width: 1280px;
-  margin: 24px auto;
-  padding: 0 24px;
+  margin: 20px auto;
+  padding: 0 16px;
   display: grid;
-  grid-template-columns: 296px 1fr;
+  grid-template-columns: 280px 1fr;
   gap: 24px;
 }
 
@@ -187,6 +313,31 @@ body {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-width: 0;  /* CRITICAL: prevents grid blowout */
+  overflow: hidden;
+}
+
+.bento-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.bento-main {
+  flex: 1 1 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 320px;
+}
+
+.bento-side {
+  flex: 1 1 30%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  min-width: 300px;
 }
 
 /* GENERAL CARD & CONTAINER REDESIGN */
@@ -274,7 +425,7 @@ body {
   flex-direction: column;
   gap: 12px;
   margin-top: 16px;
-  max-width: 480px;
+  width: 100%;
 }
 
 .github-button,
@@ -468,6 +619,33 @@ body {
   color: var(--text-muted);
 }
 
+/* Flexible input rows that stack on small screens */
+.readme-input-row {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.repo-analyzer-form {
+  display: flex;
+  gap: 12px;
+  max-width: 600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+@media (max-width: 480px) {
+  .readme-input-row,
+  .repo-analyzer-form {
+    flex-direction: column;
+  }
+  .readme-input-row button,
+  .repo-analyzer-form button {
+    width: 100%;
+    height: 40px;
+  }
+}
+
 .rating-bar-track {
   height: 6px;
   border-radius: 3px;
@@ -504,52 +682,183 @@ body {
   margin-bottom: 4px;
 }
 
-/* README ACTIONS & PREVIEW */
-.readme-actions {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.readme-actions button {
-  flex: 1;
+/* README PANEL — Mobile-first redesign */
+.readme-panel-card {
+  background-color: var(--bg-panel);
   border: 1px solid var(--line-strong);
-  background-color: var(--bg-deep);
-  color: var(--text-main);
-  padding: 8px 16px;
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-neon);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Collapsible tip block */
+.readme-tip-block {
+  border: 1px solid var(--line-strong);
   border-radius: 6px;
-  font-size: 0.88rem;
-  font-weight: 600;
+  background: rgba(110, 118, 129, 0.07);
+  font-size: 0.82rem;
+}
+
+.readme-tip-block summary {
+  padding: 10px 14px;
   cursor: pointer;
+  font-weight: 600;
+  color: var(--text-main);
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-.readme-actions button:hover {
-  background-color: var(--line-strong);
+.readme-tip-block summary::-webkit-details-marker { display: none; }
+
+.readme-tip-body {
+  padding: 0 14px 12px;
+  color: var(--text-muted);
+  line-height: 1.5;
 }
 
-.readme-actions button.primary-btn {
-  background-color: var(--git-green);
-  color: #ffffff;
-  border-color: rgba(240, 246, 252, 0.1);
+.readme-tip-body p { margin: 4px 0 0; }
+
+/* Prompt area */
+.readme-prompt-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
-.readme-actions button.primary-btn:hover {
-  background-color: var(--git-green-hover);
+.readme-prompt-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-main);
 }
 
+/* Preview / code tab bar */
+.readme-tab-bar {
+  display: flex;
+  border-bottom: 1px solid var(--line-strong);
+  gap: 0;
+}
+
+.readme-tab-btn {
+  border: 0;
+  background: transparent;
+  padding: 8px 14px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  transition: color 0.15s;
+  white-space: nowrap;
+}
+
+.readme-tab-btn.active {
+  color: var(--text-main);
+  font-weight: 600;
+  border-bottom-color: var(--git-orange);
+}
+
+/* Preview boxes */
 .readme-preview-box {
   width: 100%;
-  height: 350px;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.readme-preview-rendered {
+  height: clamp(260px, 55vh, 480px);
+  background-color: var(--bg-deep);
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  padding: 14px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  color: var(--text-main);
+  white-space: normal;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  /* NOTE: removed contain:content — it clips content on some browsers */
+}
+
+/* All direct children of the preview must not overflow it */
+.readme-preview-rendered * {
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Images inside preview should scale down */
+.readme-preview-rendered img {
+  max-width: 100% !important;
+  height: auto;
+  display: inline-block;
+}
+
+/* Tables inside preview scroll horizontally inside the preview, not the page */
+.readme-preview-rendered div[style*="overflow-x"] {
+  max-width: 100%;
+}
+
+.readme-preview-code {
+  height: clamp(200px, 45vh, 400px);
+  width: 100%;
   font-family: ui-monospace, SFMono-Regular, SF Mono, Menlo, Consolas, Liberation Mono, monospace;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   padding: 12px;
   background-color: var(--bg-deep);
   color: var(--text-main);
   border: 1px solid var(--line-strong);
   border-radius: 6px;
-  resize: vertical;
-  overflow: auto;
+  resize: none;
+  overflow-x: hidden;
+  overflow-y: auto;
   white-space: pre-wrap;
+  word-break: break-all;
+  display: block;
+}
+
+/* Action buttons */
+.readme-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.readme-action-btn {
+  flex: 1;
+  min-width: 100px;
+  border: 1px solid var(--line-strong);
+  background-color: var(--bg-deep);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.readme-action-btn:hover {
+  background-color: var(--line-strong);
+}
+
+.readme-action-primary {
+  background-color: var(--git-green);
+  color: #ffffff;
+  border-color: rgba(240, 246, 252, 0.1);
+}
+
+.readme-action-primary:hover {
+  background-color: var(--git-green-hover);
 }
 
 .loading-overlay {
@@ -580,34 +889,73 @@ body {
 }
 
 /* RESPONSIVE LAYOUT RULES */
-@media (max-width: 980px) {
+@media (max-width: 1024px) {
+  .github-profile-layout {
+    grid-template-columns: 240px 1fr;
+    gap: 16px;
+  }
+}
+
+/* Switch from desktop tabs to hamburger at 640px */
+@media (max-width: 640px) {
+  .desktop-tabs {
+    display: none !important;
+  }
+  .mobile-tabs-row {
+    display: flex !important;
+  }
+  /* Tab bar no longer needs to scroll on mobile since we use hamburger */
+  .github-tabs-bar {
+    overflow: visible;
+  }
+}
+
+@media (max-width: 768px) {
   .github-profile-layout {
     grid-template-columns: 1fr;
-    padding: 0 16px;
+    padding: 0 12px;
+    margin: 12px auto;
+    gap: 16px;
   }
   .github-sidebar {
     width: 100%;
   }
-}
-
-@media (max-width: 680px) {
-  .github-header {
-    flex-direction: column;
-    height: auto;
-    padding: 12px;
-    gap: 8px;
-  }
-  .github-header-left {
-    flex-direction: column;
+  .bento-main,
+  .bento-side {
+    min-width: 0;
+    flex: 1 1 100%;
     width: 100%;
   }
-  .github-search-container {
-    width: 100%;
-  }
-  .github-tabs-container {
-    overflow-x: auto;
+  .bento-grid {
+    flex-direction: column;
+    gap: 16px;
   }
   .rating-grid {
     grid-template-columns: 1fr;
+  }
+  .github-search-container {
+    display: none;
+  }
+}
+
+@media (max-width: 480px) {
+  .github-header {
+    padding: 8px 12px;
+  }
+  .github-logo strong {
+    font-size: 1rem !important;
+  }
+  .github-profile-layout {
+    padding: 0 10px;
+  }
+  .card {
+    padding: 12px;
+  }
+  .readme-panel-card {
+    padding: 14px;
+  }
+  .readme-preview-rendered,
+  .readme-preview-code {
+    height: clamp(220px, 45vh, 360px);
   }
 }

@@ -49,16 +49,16 @@ export function RepoAnalyzerPanel() {
           <p className="subtle">Validate repository health, structure, and live deployment status.</p>
         </div>
 
-        <form onSubmit={handleAnalyze} style={{ display: 'flex', gap: '12px', maxWidth: '600px', margin: '0 auto' }}>
+        <form onSubmit={handleAnalyze} className="repo-analyzer-form">
           <input
             type="text"
             className="input-github"
             placeholder="e.g. facebook/react or https://github.com/..."
             value={repoUrl}
             onChange={(e) => setRepoUrl(e.target.value)}
-            style={{ flex: 1, padding: '10px 14px', borderRadius: '6px' }}
+            style={{ flex: 1, padding: '10px 14px', borderRadius: '6px', minWidth: 0 }}
           />
-          <button type="submit" className="btn-primary" disabled={loading} style={{ padding: '10px 20px' }}>
+          <button type="submit" className="btn-primary" disabled={loading} style={{ padding: '10px 20px', flexShrink: 0 }}>
             {loading ? 'Scanning...' : 'Analyze'}
           </button>
         </form>
