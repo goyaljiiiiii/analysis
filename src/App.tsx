@@ -10,7 +10,6 @@ import { AnalysisReport } from './components/AnalysisReport';
 import { ReadmePanel } from './components/ReadmePanel';
 import { RepoAnalyzerPanel } from './components/RepoAnalyzerPanel';
 import { characterProfile } from './data/character';
-import { originThemes } from './data/origins';
 import type { DeveloperProfile } from './types/profile';
 
 type ChecklistItem = {
