@@ -6,9 +6,9 @@ import { StatPanel } from './components/StatPanel';
 import { AchievementVault } from './components/AchievementVault';
 import { QuestBoard } from './components/QuestBoard';
 import { SkillTree } from './components/SkillTree';
-import { OriginSelector } from './components/OriginSelector';
 import { AnalysisReport } from './components/AnalysisReport';
 import { ReadmePanel } from './components/ReadmePanel';
+import { RepoAnalyzerPanel } from './components/RepoAnalyzerPanel';
 import { characterProfile } from './data/character';
 import { originThemes } from './data/origins';
 import type { DeveloperProfile } from './types/profile';
@@ -34,7 +34,7 @@ type RatingBreakdown = {
 function App() {
   const [profile, setProfile] = useState<DeveloperProfile>(characterProfile);
   const [activeTheme, setActiveTheme] = useState<string>('github-dark');
-  const [activeTab, setActiveTab] = useState<'overview' | 'ratings' | 'readme'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'ratings' | 'readme' | 'repo-analyzer'>('overview');
   const [isLoaded, setIsLoaded] = useState<boolean>(false);
   const [usernameInput, setUsernameInput] = useState<string>('');
   const [resumeFile, setResumeFile] = useState<File | null>(null);
@@ -164,12 +164,12 @@ function App() {
 
       // 2) If resume uploaded, parse + merge into the profile
       if (resumeFile) {
-        const formData = new FormData();
-        formData.append('resume', resumeFile, resumeFile.name);
-
         const resumeRes = await fetch('/api/resume?name=' + encodeURIComponent(resumeFile.name), {
           method: 'POST',
-          body: formData,
+          headers: {
+            'Content-Type': resumeFile.type || 'application/octet-stream'
+          },
+          body: resumeFile,
         });
 
         if (!resumeRes.ok) {
@@ -470,6 +470,13 @@ function App() {
               >
                 <span>📝</span> README Generator
               </button>
+              <button
+                className={`github-tab ${activeTab === 'repo-analyzer' ? 'active' : ''}`}
+                onClick={() => setActiveTab('repo-analyzer')}
+                type="button"
+              >
+                <span>🔍</span> Repo Analyzer
+              </button>
             </div>
           </div>
 
@@ -503,9 +510,7 @@ function App() {
                 </div>
               </section>
 
-              {/* Character Origin selector customization */}
-              <OriginSelector origins={originThemes} />
-            </aside>
+              </aside>
 
             {/* Right Side: Tabbed Content Panel */}
             <section className="github-content">
@@ -524,50 +529,36 @@ function App() {
 
               {/* TAB 1: CHARACTER SHEET OVERVIEW */}
               {activeTab === 'overview' && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                  {/* Top Row: Combat Stats & Activity on left, Skill Tree on right */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      <StatPanel stats={profile.stats} />
-                      
-                      <section className="card contrib-calendar" style={{ padding: '20px', margin: 0 }}>
+                <div className="dashboard-bento" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  
+                  {/* Top Level: Combat Stats Full Width */}
+                  <div className="bento-header">
+                    <StatPanel stats={profile.stats} />
+                  </div>
+
+                  {/* Two Column Layout for the rest */}
+                  <div className="bento-grid" style={{ display: 'flex', flexWrap: 'wrap', gap: '24px', alignItems: 'flex-start' }}>
+                    
+                    {/* Left Column (Main Content) - roughly 65% width */}
+                    <div className="bento-main" style={{ flex: '1 1 60%', display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '320px' }}>
+                      <section className="card contrib-calendar" style={{ padding: '24px', margin: 0, boxShadow: 'var(--shadow-neon)' }}>
                         <div className="section-head">
                           <h3>Activity Grid</h3>
                         </div>
                         <div className="contrib-grid-wrapper">
-                          {/*
-                            NOTE:
-                            This is still a visual approximation unless we fetch actual daily contribution counts.
-                            We keep it deterministic so it doesn't look “fake randomized” in the UI.
-                          */}
                           <div className="contrib-grid" aria-label="Contribution activity grid">
                             {Array.from({ length: 70 }).map((_, idx) => {
-                              // Deterministic pseudo-distribution based on current profile metrics.
-                              // level frequency increases with commits / PRs and streak.
-                              const commitsFactor = Math.min(
-                                1,
-                                (Number(
-                                  profile.stats.find((s) => s.label === 'Commits')
-                                    ?.value ?? 0,
-                                ) || 0) / 200,
-                              );
-                              const prsFactor = Math.min(
-                                1,
-                                (Number(
-                                  profile.stats.find((s) => s.label === 'Merged PRs')
-                                    ?.value ?? 0,
-                                ) || 0) / 50,
-                              );
+                              const commitsFactor = Math.min(1, (Number(profile.stats.find((s) => s.label === 'Commits')?.value ?? 0) || 0) / 200);
+                              const prsFactor = Math.min(1, (Number(profile.stats.find((s) => s.label === 'Merged PRs')?.value ?? 0) || 0) / 50);
                               const streakStr = (profile.stats.find((s) => s.label === 'Contrib Streak')?.value ?? '1').toString();
                               const streakNumMatch = streakStr.match(/\d+/);
                               const streakNum = streakNumMatch ? parseInt(streakNumMatch[0], 10) : 0;
                               const streakFactor = Math.min(1, streakNum / 30);
 
-                              const raw = (commitsFactor as number) * 0.55 + (prsFactor as number) * 0.25 + (streakFactor as number) * 0.20;
-                              const density = 0.18 + raw * 0.65; // 0.18..0.83
+                              const raw = commitsFactor * 0.55 + prsFactor * 0.25 + streakFactor * 0.20;
+                              const density = 0.18 + raw * 0.65; 
 
-                              // Spread levels by index while keeping it deterministic.
-                              const t = (idx * 9301 + 49297) % 233280; // simple LCG
+                              const t = (idx * 9301 + 49297) % 233280; 
                               const r = t / 233280;
 
                               let level = '';
@@ -581,40 +572,40 @@ function App() {
                           </div>
                         </div>
                       </section>
-                    </div>
 
-                    <section className="card" style={{ padding: '20px', margin: 0, display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      <div className="section-head">
-                        <h3>Language Mastery &amp; Skills</h3>
-                      </div>
-                      <div className="lang-distribution-bar" style={{ margin: 0 }}>
-                        {profile.skillTree.filter(s => s.branch === 'Core Magic' || s.branch === 'Deep Systems').map((skill, idx) => {
-                          const colors = ['#f1e05a', '#3572A5', '#00ADD8', '#bc8cff', '#58a6ff'];
-                          return (
-                            <div
-                              key={skill.name}
-                              className="lang-distribution-segment"
-                              style={{
-                                width: `${100 / Math.max(1, profile.skillTree.filter(s => s.branch === 'Core Magic' || s.branch === 'Deep Systems').length)}%`,
-                                backgroundColor: colors[idx % colors.length]
-                              }}
-                              title={`${skill.name}: ${skill.level}%`}
-                            ></div>
-                          );
-                        })}
-                      </div>
-                      <SkillTree skills={profile.skillTree.slice(0, 5)} />
-                    </section>
-                  </div>
-
-                  {/* Bottom Row: Quest Board on left, Achievements & Analysis on right */}
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '20px' }}>
-                    <QuestBoard repositories={profile.repositories} />
-                    
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      <AchievementVault achievements={profile.achievements.slice(0, 4)} />
+                      <QuestBoard repositories={profile.repositories} />
+                      
                       <AnalysisReport report={profile.analysis} />
                     </div>
+
+                    {/* Right Column (Sidebar Content) - roughly 35% width */}
+                    <div className="bento-side" style={{ flex: '1 1 30%', display: 'flex', flexDirection: 'column', gap: '24px', minWidth: '300px' }}>
+                      <section className="card" style={{ padding: '24px', margin: 0, display: 'flex', flexDirection: 'column', gap: '16px', boxShadow: 'var(--shadow-neon)' }}>
+                        <div className="section-head" style={{ marginBottom: '4px' }}>
+                          <h3>Language Mastery &amp; Skills</h3>
+                        </div>
+                        <div className="lang-distribution-bar" style={{ margin: 0, height: '12px', borderRadius: '6px' }}>
+                          {profile.skillTree.filter(s => s.branch === 'Core Magic' || s.branch === 'Deep Systems').map((skill, idx) => {
+                            const colors = ['#f1e05a', '#3572A5', '#00ADD8', '#bc8cff', '#58a6ff'];
+                            return (
+                              <div
+                                key={skill.name}
+                                className="lang-distribution-segment"
+                                style={{
+                                  width: `${100 / Math.max(1, profile.skillTree.filter(s => s.branch === 'Core Magic' || s.branch === 'Deep Systems').length)}%`,
+                                  backgroundColor: colors[idx % colors.length]
+                                }}
+                                title={`${skill.name}: ${skill.level}%`}
+                              ></div>
+                            );
+                          })}
+                        </div>
+                        <SkillTree skills={profile.skillTree.slice(0, 5)} />
+                      </section>
+
+                      <AchievementVault achievements={profile.achievements.slice(0, 5)} />
+                    </div>
+
                   </div>
                 </div>
               )}
@@ -743,6 +734,11 @@ function App() {
                 <ReadmePanel
                   profile={profile}
                 />
+              )}
+
+              {/* TAB 4: REPO ANALYZER */}
+              {activeTab === 'repo-analyzer' && (
+                <RepoAnalyzerPanel />
               )}
 
             </section>

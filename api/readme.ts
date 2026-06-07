@@ -144,8 +144,8 @@ export default async function handler(req: any, res: any) {
     const randLayoutType = Math.floor(Math.random() * 5); 
     const randBadgeStyle = ['for-the-badge', 'flat-square', 'plastic', 'flat'][Math.floor(Math.random() * 4)];
     const randProgressBarChar = ['█', '▓', '■', '🔴', '🔵', '🌸', '✨', '🔥'][Math.floor(Math.random() * 8)];
-    const randIncludeAvatar = Math.random() > 0.45; // 55% chance to include large avatar block
-    const randIncludeGif = Math.random() > 0.35;    // 65% chance to include animated stickers
+    const randIncludeAvatar = false; 
+    const randIncludeGif = false;
 
     // 1. DYNAMIC AI GENERATION (using Gemini API if Key is present)
     const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_GENAI_API_KEY || '';
@@ -305,13 +305,13 @@ Core Constraints:
       cfg.emojiQuest = '🧨';
     }
 
-    // Pick Theme Sticker GIF
+    // Pick Theme Sticker GIF (Disabled per user request)
     const stickerPool = baseTheme === 'cute' 
       ? GIF_STICKERS.cute 
       : baseTheme === 'gaming' 
         ? GIF_STICKERS.gaming 
         : GIF_STICKERS.general;
-    const randSticker = stickerPool[Math.floor(Math.random() * stickerPool.length)];
+    const randSticker = '';
 
     // ----------------------------------------------------
     // 1. OPENING SECTION BUILDER
@@ -405,28 +405,9 @@ Core Constraints:
     // 3. SOCIAL LINKS BUILDER
     // ----------------------------------------------------
     const buildSocialLinks = () => {
-      const type = Math.floor(Math.random() * 3);
       const align = ['left', 'center', 'right'][Math.floor(Math.random() * 3)];
       
-      let linkBlock = '';
-      if (type === 0) {
-        // Shields.io Badges
-        linkBlock = [
-          `[![GitHub](https://img.shields.io/badge/GitHub-100000?style=${randBadgeStyle}&logo=github&logoColor=white)](https://github.com/${profile.battleTag.split('#')[0].toLowerCase()})`,
-          `[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=${randBadgeStyle}&logo=linkedin&logoColor=white)](https://linkedin.com)`,
-          `[![Twitter](https://img.shields.io/badge/Twitter-1DA1F2?style=${randBadgeStyle}&logo=twitter&logoColor=white)](https://twitter.com)`
-        ].join(' ');
-      } else if (type === 1) {
-        // HTML Icons
-        linkBlock = [
-          `<a href="https://github.com"><img src="https://img.icons8.com/color/48/github.png" width="28" alt="GitHub"/></a>`,
-          `<a href="https://linkedin.com"><img src="https://img.icons8.com/color/48/linkedin.png" width="28" alt="LinkedIn"/></a>`,
-          `<a href="https://twitter.com"><img src="https://img.icons8.com/color/48/twitter.png" width="28" alt="Twitter"/></a>`
-        ].join(' &nbsp; ');
-      } else {
-        // Plain Text Links
-        linkBlock = `🔗 **[GitHub](https://github.com)** &nbsp; // &nbsp; **[LinkedIn](https://linkedin.com)** &nbsp; // &nbsp; **[Twitter](https://twitter.com)**`;
-      }
+      const linkBlock = `🐙 **[GitHub](https://github.com/${profile.battleTag.split('#')[0].toLowerCase()})** &nbsp; // &nbsp; 💼 **[LinkedIn](https://linkedin.com)** &nbsp; // &nbsp; 🐦 **[Twitter](https://twitter.com)**`;
 
       if (align === 'center') {
         return `<div align="center">\n  ${linkBlock}\n</div>\n\n`;
@@ -521,9 +502,9 @@ Core Constraints:
     const buildStats = () => {
       const username = profile.battleTag.split('#')[0].toLowerCase();
       
-      const statsCard = `![Stats Card](https://github-readme-stats.vercel.app/api?username=${username}&show_icons=true&theme=${cfg.statsTheme})`;
-      const snakeGame = `![Snake Contribution Grid](https://raw.githubusercontent.com/${username}/${username}/output/github-contribution-grid-snake.svg)`;
-      const imageSticker = randIncludeGif ? `<img src="${randSticker}" alt="RPG Sticker" style="max-height: 120px; border-radius: 6px;" />` : '';
+      const statsCard = `![Stats Card](https://github-readme-stats.vercel.app/api?username=${username}&show_icons=false&theme=${cfg.statsTheme})`;
+      const snakeGame = ``;
+      const imageSticker = ``;
 
       const options = [
         // Option A: Center aligned blocks

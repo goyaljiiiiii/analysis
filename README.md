@@ -11,7 +11,7 @@
     <strong>GitHub stats → RPG stats</strong> (commits, merged PRs, stars, streak) •
     <strong>Power Level (0–100)</strong> + rank •
     <strong>Skill Tree</strong> + <strong>Quest Log</strong> •
-    <strong>README exporter</strong> (copy / download)
+    <strong>README exporter</strong> + <strong>Repo Analyzer</strong>
   </p>
 
   <br />
@@ -63,6 +63,7 @@
 3. Your character sheet is generated: <strong>class</strong>, <strong>rank</strong>, <strong>power level</strong>, a <strong>skill tree</strong>, and a <strong>quest log</strong>.
 4. (Optional) Upload your resume (PDF/DOCX) to extract skills and unlock achievements.
 5. Use <strong>README Generator</strong> to copy / download your themed <code>README.md</code>.
+6. Use <strong>Repo Analyzer</strong> to audit any public repository and get actionable advice to improve it.
 
 ---
 
@@ -86,6 +87,9 @@
 - <strong>README.md Generator</strong>
   - Renders themed markdown from your live stats
   - Copy to clipboard or download as a <code>.md</code> file
+- <strong>Repository Analyzer</strong>
+  - Paste any GitHub URL to validate health, structure, and live deployment status
+  - Receive actionable guidance to improve discoverability and open-source standards
 
 ---
 
@@ -152,6 +156,11 @@
    - Renders a markdown string based on your active dashboard statistics, skills, achievements, and selected theme.
    - Features dynamic text-based progress bars, shields.io badges, and quest logs.
    - Provides options to copy to clipboard or download as a `.md` file.
+
+6. **Repository Analyzer (Advisory System)**
+   - Analyze any public repository link instantly.
+   - Extracts top-level directory structure and evaluates community standards (README, License, Description, Live Deployment URL).
+   - Instead of just displaying raw data, the Analyzer acts as an **Advisory System**, generating actionable guidance on how to improve the repository's health, SEO, and developer experience.
 
 ---
 
